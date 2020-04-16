@@ -1,4 +1,4 @@
-# Lambda functions for Storslaget Bolaget app
+# Server functions for Storslaget Bolaget app
 
 ## HTTP Protocol
 
