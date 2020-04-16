@@ -54,3 +54,14 @@ Ok/Error
 - 200: Ok
 - 201: No product with ID
 - 500: Server error
+
+## Database schema
+### User_ratings
+product_id (String)\
+user_id (String)\
+rating (Integer)
+
+### Product_ratings
+**product_id (String)**\
+avgRating (Float)\
+numRatings (Integer)
