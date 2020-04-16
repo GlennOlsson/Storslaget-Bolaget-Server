@@ -11,11 +11,10 @@ Headers:
 ```json
 [
 	{
-		PRODUCT,
-		myRating: RATING (Integer),
-		avgRating: RATING (Float)
+		"PRODUCT"
+		"myRating": "RATING (Integer)",
+		"avgRating": "RATING (Float)"
 	},
-	...
 ]
 ```
 
@@ -31,11 +30,10 @@ Query:
 ```json
 [
 	{
-		PRODUCT,
-		myRating: RATING (Integer),
-		avgRating: RATING (Float)
+		"PRODUCT"
+		"myRating": "RATING (Integer)",
+		"avgRating": "RATING (Float)"
 	},
-	...
 ]
 ```
 
