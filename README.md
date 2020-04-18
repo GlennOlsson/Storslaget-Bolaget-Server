@@ -59,7 +59,7 @@ product_id (String)\
 user_id (String)\
 rating (Integer)
 
-### Product_ratings
+### Products
 **product_id (String)**\
 avgRating (Float)\
 numRatings (Integer)
