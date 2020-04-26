@@ -10,8 +10,6 @@ admin.initializeApp({
 	databaseURL: "https://storslaget-bolaget.firebaseio.com/",
 });
 
-// admin.initializeApp();
-
 // // Start writing Firebase Functions
 // // https://firebase.google.com/docs/functions/typescript
 //
@@ -38,14 +36,10 @@ export const populateJSON = functions.https.onRequest(
 			action: "read",
 			expires: new Date().getTime() + 1000 * 60 * 5, //5 minutes
 		});
-
-		console.log("Got signed url: ", url[0])
-		
 		
 		http(url[0], {
 			json: true
 		}, (err, resp, json) => {
-			console.log("Got content", json[0])
 			Promise.all(json.map(async (product: any) => {
 				const productID = product.ProductId;
 				await db
@@ -60,13 +54,10 @@ export const populateJSON = functions.https.onRequest(
 				});
 				return product
 			})).then(() => {
-				console.log("All ratings fetched", json[0]);
-
 				file.save(JSON.stringify(json)).then(() => {
-					console.log("Saved")
 					response.send("Done");
 				}).catch(err => {
-					console.log("ERROR", err)
+					console.log("ERROR with saving file ", err)
 					response.status(500);
 					response.send("Error " + err)
 				});
@@ -95,8 +86,6 @@ export const getMyRating = functions.https.onRequest(
 		const userID = userIDQ as string;
 		const productID = productIDQ as string;
 
-		console.log("userID, productID:", userID, productID);
-
 		let db = admin.database();
 		await db
 			.ref(getUserRatingPart(userID, productID))
@@ -118,116 +107,6 @@ export const getMyRating = functions.https.onRequest(
 			});
 	}
 );
-
-export const populateDB = functions.https.onRequest(
-	async (request, response) => {
-		let userID = request.query.user as string;
-
-		if (!userID) {
-			response.send(`Bad userid, was ${userID}`);
-			return;
-		}
-
-		let db = admin.database();
-		await http(
-			"https://firebasestorage.googleapis.com/v0/b/storslaget-bolaget.appspot.com/o/NewProducts.json?alt=media&token=413567b1-890a-4273-a265-b306ae0ecd86",
-			{
-				headers: {
-					"Ocp-Apim-Subscription-Key": functions.config().bolaget.key,
-				},
-				json: true,
-			},
-			(err, resp, json) => {
-				if (err != null) {
-					response.status(500);
-					response.send("ERROR" + err);
-				} else {
-					Promise.all(
-						json.map(async (product: any) => {
-							let productID = product.ProductId;
-							// console.log("Doing ", productID)
-							var p1 = db
-								.ref(getUserRatingPart(userID, productID))
-								.once("value")
-								.then((snap) => {
-									var rating = snap.val();
-									product.myRating = rating
-										? rating.rating
-										: 0; //if exists, else 0
-								});
-							var p2 = db
-								.ref(getProductRatingPart(productID))
-								.once("value")
-								.then((snap) => {
-									var rating = snap.val();
-									product.avgRating = rating
-										? rating.avgRating
-										: 0; //if exists, else 0
-								})
-								.catch((err) => {
-									console.log("err? ", err);
-								});
-							// console.log("Done ", productID)
-
-							await Promise.all([p1, p2]);
-						})
-					).then(() => {
-						response.send(JSON.stringify(json));
-					});
-				}
-			}
-		);
-	}
-);
-
-export const test = functions.https.onRequest(async (request, response) => {
-	let userID = request.query.id as string;
-	console.log(`USERID: ${userID}`);
-	let db = admin.database();
-
-	let product: any = {
-		AlcoholPercentage: 37.5,
-		ProducerName: "Pernod Ricard",
-		SubCategory: "Vodka och Brännvin",
-		Country: "Sverige",
-		Type: "Vodka",
-		BeverageDescriptionShort: "Vodka",
-		SupplierName: "Pernod Ricard Sweden AB",
-		Volume: 700,
-		ProductNameThin: null,
-		Style: null,
-		ProductId: "1",
-		ProductNameBold: "Renat",
-		Price: 205,
-		AssortmentText: "Fast sortiment",
-		ProductNumberShort: "1",
-		Category: "Sprit",
-	};
-
-	let productID = product.ProductId;
-
-	var p1 = db
-		.ref(getUserRatingPart(userID, productID))
-		.once("value")
-		.then((snap) => {
-			var rating = snap.val();
-			product.myRating = rating ? rating.rating : 0; //if exists, else 0
-		});
-	var p2 = db
-		.ref(getProductRatingPart(productID))
-		.once("value")
-		.then((snap) => {
-			var rating = snap.val();
-			product.avgRating = rating ? rating.avgRating : 0; //if exists, else 0
-		})
-		.catch((err) => {
-			console.log("err? ", err);
-		});
-
-	Promise.all([p1, p2]).then(() => {
-		response.send(JSON.stringify(product));
-	});
-});
 
 export const rate = functions.https.onRequest(async (request, response) => {
 	let userIDQ = request.query.user;
