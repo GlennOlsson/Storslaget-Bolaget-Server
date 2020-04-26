@@ -7,7 +7,7 @@ var serviceAccount = require("../storslaget-bolaget-firebase-adminsdk-726n0-56fb
 admin.initializeApp({
 	credential: admin.credential.cert(serviceAccount),
 	storageBucket: "storslaget-bolaget.appspot.com",
-	databaseURL: "https://storslaget-bolaget.firebaseio.com/"
+	// databaseURL: "https://storslaget-bolaget.firebaseio.com/",
 });
 
 // admin.initializeApp();
@@ -26,6 +26,53 @@ export const getAllProducts = functions.https.onRequest(
 
 		// response.json = json
 		// response.end();
+	}
+);
+
+export const populateJSON = functions.https.onRequest(
+	(request, response) => {}
+);
+
+export const getMyRating = functions.https.onRequest(
+	async (request, response) => {
+		const params = request.query;
+		const userIDQ = params.user;
+		const productIDQ = params.product;
+
+		if (!userIDQ || !(userIDQ as string)) {
+			response.status(400);
+			response.send("user query must be specified, was " + userIDQ);
+			return;
+		}
+		if (!productIDQ || !(productIDQ as string)) {
+			response.status(400);
+			response.send("product query must be specified, was " + productIDQ);
+			return;
+		}
+
+		const userID = userIDQ as string;
+		const productID = productIDQ as string;
+
+		console.log("userID, productID:", userID, productID)
+
+		let db = admin.database();
+		await db
+			.ref(getUserRatingPart(userID, productID))
+			.once("value")
+			.then((snap) => {
+				const val = snap.val();
+				response.status(200);
+				if (val && val.rating) {
+					response.send("" + val.rating);
+				} else {
+					response.send("0");
+				}
+				return;
+			}).catch(err => {
+				console.log("Error with db ", err)
+				response.status(500)
+				response.send("ERROR; " + err)
+			})
 	}
 );
 
@@ -52,32 +99,38 @@ export const populateDB = functions.https.onRequest(
 					response.status(500);
 					response.send("ERROR" + err);
 				} else {
-					Promise.all(json.map(async (product: any) => {
-						let productID = product.ProductId;
-						// console.log("Doing ", productID)
-						var p1 = db.ref(getUserRatingPart(userID, productID))
-							.once("value")
-							.then((snap) => {
-								var rating = snap.val();
-								product.myRating = rating ? rating.rating : 0; //if exists, else 0
-							});
-						var p2 = db.ref(getProductRatingPart(productID))
-							.once("value")
-							.then((snap) => {
-								var rating = snap.val();
-								product.avgRating = rating
-									? rating.avgRating
-									: 0; //if exists, else 0
-							})
-							.catch((err) => {
-								console.log("err? ", err);
-							});
+					Promise.all(
+						json.map(async (product: any) => {
+							let productID = product.ProductId;
+							// console.log("Doing ", productID)
+							var p1 = db
+								.ref(getUserRatingPart(userID, productID))
+								.once("value")
+								.then((snap) => {
+									var rating = snap.val();
+									product.myRating = rating
+										? rating.rating
+										: 0; //if exists, else 0
+								});
+							var p2 = db
+								.ref(getProductRatingPart(productID))
+								.once("value")
+								.then((snap) => {
+									var rating = snap.val();
+									product.avgRating = rating
+										? rating.avgRating
+										: 0; //if exists, else 0
+								})
+								.catch((err) => {
+									console.log("err? ", err);
+								});
 							// console.log("Done ", productID)
-						
-						await Promise.all([p1, p2]);
-					})).then(() => {
-						response.send(JSON.stringify(json))
-					})
+
+							await Promise.all([p1, p2]);
+						})
+					).then(() => {
+						response.send(JSON.stringify(json));
+					});
 				}
 			}
 		);
@@ -134,8 +187,8 @@ export const test = functions.https.onRequest(async (request, response) => {
 });
 
 export const rate = functions.https.onRequest(async (request, response) => {
-	let userIDQ = request.query.userID;
-	let productIDQ = request.query.productID;
+	let userIDQ = request.query.user;
+	let productIDQ = request.query.product;
 	let ratingQ = request.query.rating;
 
 	if (!(userIDQ && productIDQ && ratingQ)) {
