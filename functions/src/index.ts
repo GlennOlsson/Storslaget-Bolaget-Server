@@ -7,7 +7,7 @@ var serviceAccount = require("../storslaget-bolaget-firebase-adminsdk-726n0-56fb
 admin.initializeApp({
 	credential: admin.credential.cert(serviceAccount),
 	storageBucket: "storslaget-bolaget.appspot.com",
-	// databaseURL: "https://storslaget-bolaget.firebaseio.com/",
+	databaseURL: "https://storslaget-bolaget.firebaseio.com/",
 });
 
 // admin.initializeApp();
@@ -15,22 +15,64 @@ admin.initializeApp({
 // // Start writing Firebase Functions
 // // https://firebase.google.com/docs/functions/typescript
 //
-export const getAllProducts = functions.https.onRequest(
+export const getAllProductsURL = functions.https.onRequest(
 	async (request, response) => {
 		var bucket = admin.storage().bucket();
 		var file = bucket.file("NewProducts.json");
-		await file.getSignedUrl({
+		var url = await file.getSignedUrl({
 			action: "read",
 			expires: new Date().getTime() + 1000 * 60 * 5, //5 minutes
 		});
 
-		// response.json = json
-		// response.end();
+		response.send(url[0]);
 	}
 );
 
 export const populateJSON = functions.https.onRequest(
-	(request, response) => {}
+	async (request, response) => {
+		let db = admin.database();
+
+		var bucket = admin.storage().bucket();
+		var file = bucket.file("NewProducts.json");
+		var url = await file.getSignedUrl({
+			action: "read",
+			expires: new Date().getTime() + 1000 * 60 * 5, //5 minutes
+		});
+
+		console.log("Got signed url: ", url[0])
+		
+		
+		http(url[0], {
+			json: true
+		}, (err, resp, json) => {
+			console.log("Got content", json[0])
+			Promise.all(json.map(async (product: any) => {
+				const productID = product.ProductId;
+				await db
+				.ref(getProductRatingPart(productID))
+				.once("value")
+				.then((snap) => {
+					var rating = snap.val();
+					product.avgRating = rating ? rating.avgRating : 0; //if exists, else 0
+				})
+				.catch((err) => {
+					console.log("err with product map; ", err);
+				});
+				return product
+			})).then(() => {
+				console.log("All ratings fetched", json[0]);
+
+				file.save(JSON.stringify(json)).then(() => {
+					console.log("Saved")
+					response.send("Done");
+				}).catch(err => {
+					console.log("ERROR", err)
+					response.status(500);
+					response.send("Error " + err)
+				});
+			})
+		});
+	}
 );
 
 export const getMyRating = functions.https.onRequest(
@@ -53,7 +95,7 @@ export const getMyRating = functions.https.onRequest(
 		const userID = userIDQ as string;
 		const productID = productIDQ as string;
 
-		console.log("userID, productID:", userID, productID)
+		console.log("userID, productID:", userID, productID);
 
 		let db = admin.database();
 		await db
@@ -68,11 +110,12 @@ export const getMyRating = functions.https.onRequest(
 					response.send("0");
 				}
 				return;
-			}).catch(err => {
-				console.log("Error with db ", err)
-				response.status(500)
-				response.send("ERROR; " + err)
 			})
+			.catch((err) => {
+				console.log("Error with db ", err);
+				response.status(500);
+				response.send("ERROR; " + err);
+			});
 	}
 );
 
@@ -244,30 +287,6 @@ export const rate = functions.https.onRequest(async (request, response) => {
 					newTotal -= oldUserRating.rating;
 				}
 
-				console.log(
-					oldRating,
-					numRatings,
-					newNumRatings,
-					Math.round(oldRating * numRatings),
-					rating
-				);
-				console.log("oldRating", oldRating);
-				console.log("numRatings", numRatings);
-				console.log("newNumRatings", newNumRatings);
-				console.log(
-					"Math.round(oldRating * numRatings)",
-					Math.round(oldRating * numRatings)
-				);
-				console.log("rating", rating);
-				console.log("oldUserRating", oldUserRating);
-				console.log("oldRating", oldRating);
-
-				console.log(
-					"Calc new rating ",
-					newTotal,
-					newNumRatings,
-					newTotal / newNumRatings
-				);
 				let newRating = newTotal / newNumRatings;
 				update = {
 					avgRating: newRating,
@@ -280,12 +299,15 @@ export const rate = functions.https.onRequest(async (request, response) => {
 					numRatings: 1,
 				};
 			}
-			console.log("Setting ", update);
+
 			productRating
 				.set(update)
 				.then(() => {
-					response.send("Update successful");
+					http("https://us-central1-storslaget-bolaget.cloudfunctions.net/storslaget-bolaget/us-central1/populateJSON");
+					http("http://localhost:5001/storslaget-bolaget/us-central1/populateJSON");
+
 					console.log(`${userID} rated ${productID} with ${rating}`);
+					response.send("Update successful");
 				})
 				.catch((err) => {
 					console.log("Could not update dbase", err);
