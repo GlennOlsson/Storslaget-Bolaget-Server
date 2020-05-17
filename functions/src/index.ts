@@ -48,6 +48,7 @@ export const populateJSON = functions.https.onRequest(
 				.then((snap) => {
 					var rating = snap.val();
 					product.avgRating = rating ? rating.avgRating : 0; //if exists, else 0
+					product.numRatings = rating ? rating.numRatings : 0
 				})
 				.catch((err) => {
 					console.log("err with product map; ", err);
