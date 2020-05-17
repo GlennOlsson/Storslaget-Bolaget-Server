@@ -2,48 +2,41 @@
 
 ## HTTP Protocol
 
-### getAllProducts, GET
+### getAllProductsURL, GET
+Get an url of all the products
 #### Request
-Headers: 
-- User: USER_ID
-
-#### Response 
-```json
-[
-	{
-		"PRODUCT"
-		"myRating": "RATING (Integer)",
-		"avgRating": "RATING (Float)"
-	},
-]
-```
-
-### search, GET
-#### Request
-Headers: 
-- User: USER_ID
-
-Query:
-- query: SEARCH QUERY
 
 #### Response
-```json
-[
-	{
-		"PRODUCT"
-		"myRating": "RATING (Integer)",
-		"avgRating": "RATING (Float)"
-	},
-]
+Returns a temporary url of the product
+```
+URL
 ```
 
-### rate, PUT
+### populateJSON, GET
+Populates file in store with the database entries
 #### Request
-Headers: 
-- User: USER_ID
+#### Response
+Done if all OK
 
-Query:
-- id: PRODUCT ID
+### getMyRating, GET
+Get rating of a user
+#### Request
+Query params: 
+- user: USER ID (STRING)
+- product: PRODUCT ID (STRING)
+
+#### Response
+```
+THE RATING (INT)
+```
+
+### rate, GET
+Rate a product, updates DB
+#### Request
+Query params: 
+- user: USER ID (STRING)
+- product: PRODUCT ID (STRING)
+- rating: RATING (INT)
 
 #### Response
 Ok/Error
