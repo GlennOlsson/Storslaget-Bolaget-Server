@@ -183,8 +183,8 @@ export const rate = functions.https.onRequest(async (request, response) => {
 			productRating
 				.set(update)
 				.then(() => {
-					http("https://us-central1-storslaget-bolaget.cloudfunctions.net/storslaget-bolaget/us-central1/populateJSON");
-					http("http://localhost:5001/storslaget-bolaget/us-central1/populateJSON");
+					// http("https://us-central1-storslaget-bolaget.cloudfunctions.net/storslaget-bolaget/us-central1/populateJSON");
+					// http("http://localhost:5001/storslaget-bolaget/us-central1/populateJSON");
 
 					console.log(`${userID} rated ${productID} with ${rating}`);
 					response.send("Update successful");
