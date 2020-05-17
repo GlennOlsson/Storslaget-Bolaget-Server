@@ -127,7 +127,7 @@ export const rate = functions.https.onRequest(async (request, response) => {
 	try {
 		rating = parseInt(ratingQ as string);
 		productID = productIDQ as string;
-		userID = productIDQ as string;
+		userID = userIDQ as string;
 	} catch {
 		response.send(
 			`Bad data types. UserID and ProductID must be string and rating must be an integer. Where "${userIDQ}" "${productIDQ}" "${ratingQ}"`
